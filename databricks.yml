@@ -30,7 +30,7 @@ targets:
     variables:
       catalog: dbxarchitectlab_uat
     run_as:
-      service_principal_name: "<sp-dbx-lakehouse-application-id>"   # sp-dbx-lakehouse
+      service_principal_name: "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse
     permissions:
       - group_name: DBX_Architect_Lab_Admin
         level: CAN_MANAGE
@@ -43,7 +43,7 @@ targets:
     variables:
       catalog: dbxarchitectlab_prod
     run_as:
-      service_principal_name: "<sp-dbx-lakehouse-application-id>"   # sp-dbx-lakehouse
+      service_principal_name: "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse
     permissions:
       - group_name: DBX_Architect_Lab_Admin
         level: CAN_MANAGE

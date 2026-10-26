@@ -93,7 +93,7 @@ into that repository's configuration:
      grant_principals:
        - "DBX_Architect_Lab_Admin"
        - "dbxarchitectlab@gmail.com"
-       - "<sp-dbx-lakehouse application ID>" # sp-dbx-lakehouse
+       - "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse
    ```
 
    The default privileges, `BROWSE`, `USE_CATALOG` and `CREATE_SCHEMA`, are exactly what this bundle needs: it
@@ -115,11 +115,12 @@ to `grant_principals` in `live/dev/workspace-bootstrap/catalog-config.yaml`, as 
 
 ### 6. Put the application ID in the bundle
 
-In `databricks.yml`, replace `<sp-dbx-lakehouse-application-id>` in **both** the `uat` and `prod` targets:
+In `databricks.yml`, **both** the `uat` and `prod` targets run as the service principal's application ID (already set
+for `sp-dbx-lakehouse`; change both if the service principal is ever replaced):
 
 ```yaml
     run_as:
-      service_principal_name: "<application ID>"   # sp-dbx-lakehouse
+      service_principal_name: "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse
 ```
 
 `service_principal_name` takes the **application ID**, not the display name: with the name, deploy fails because no

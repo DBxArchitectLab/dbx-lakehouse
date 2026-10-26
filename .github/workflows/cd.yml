@@ -1,19 +1,22 @@
 name: Deploy
 
-# Promotion: what is merged to main deploys to uat, is smoke-tested there, and then deploys to prod once the prod
-# environment's reviewers approve. dev is never deployed from here: developers deploy their own copy to dev.
+# Two ways to deploy, both as sp-dbx-lakehouse:
+# - Merge to main (promotion): tests -> uat (deploy and smoke run) -> approval -> prod.
+# - Run workflow (on demand): Actions -> Deploy -> Run workflow, pick the branch ("Use workflow from") and the
+#   environment. dev and uat accept any branch; prod only main, and still waits for the prod environment's reviewers.
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy the selected branch to
+        type: choice
+        options: [dev, uat, prod]
+        default: dev
 
 permissions:
   contents: read
-
-# One deployment at a time; a newer push waits instead of racing an older one.
-concurrency:
-  group: deploy
-  cancel-in-progress: false
 
 env:
   # The bundle target sets the workspace host; the service principal signs in with its Databricks OAuth secret.
@@ -30,10 +33,44 @@ jobs:
       - run: pip install pytest
       - run: pytest -q tests
 
+  # On demand: the selected branch to the selected environment.
+  deploy:
+    if: github.event_name == 'workflow_dispatch'
+    needs: test
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    # One deployment per environment at a time, shared with the promotion jobs below.
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      # dev deploys the shared dev copy; the dev target is each developer's own copy.
+      TARGET: ${{ inputs.environment == 'dev' && 'dev-shared' || inputs.environment }}
+    steps:
+      - name: prod deploys only from main
+        if: inputs.environment == 'prod' && github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::prod deploys only from main; '${{ github.ref_name }}' was selected."
+          exit 1
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate -t "$TARGET"
+      - run: databricks bundle deploy -t "$TARGET"
+      # Smoke test in dev and uat; prod's job runs on its schedule (or Run now).
+      - if: inputs.environment != 'prod'
+        run: databricks bundle run -t "$TARGET" sample_ingest
+
+  # Promotion: what is merged to main.
   uat:
+    if: github.event_name == 'push'
     needs: test
     runs-on: ubuntu-latest
     environment: uat
+    concurrency:
+      group: deploy-uat
+      cancel-in-progress: false
     env:
       DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
       DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
@@ -46,9 +83,13 @@ jobs:
       - run: databricks bundle run -t uat sample_ingest
 
   prod:
+    if: github.event_name == 'push'
     needs: uat
     runs-on: ubuntu-latest
     environment: prod  # add required reviewers to this environment: the approval gate before prod
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
     env:
       DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
       DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}

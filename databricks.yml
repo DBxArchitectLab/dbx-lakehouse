@@ -11,7 +11,8 @@ variables:
     description: Schema for this bundle's tables
     default: lakehouse
 
-# Development happens in dev only. uat and prod are deployed by GitHub Actions, never by hand.
+# Developers deploy their own copy to dev by hand (target dev). Everything shared, the dev-shared copy, uat and prod,
+# is deployed by GitHub Actions as sp-dbx-lakehouse, never by hand.
 targets:
   # Each developer deploys their own copy, as themselves: resources are prefixed "[dev <user>]", schedules are paused.
   dev:
@@ -21,6 +22,23 @@ targets:
       host: "https://adb-7405609089943919.19.azuredatabricks.net"
     variables:
       catalog: dbxarchitectlab_dev
+
+  # The shared dev copy, deployed by GitHub Actions (Run workflow -> dev) from any branch. One copy, owned and run by
+  # sp-dbx-lakehouse; schedules are paused so it only runs when started (the pipeline starts it after each deploy).
+  dev-shared:
+    mode: production
+    workspace:
+      host: "https://adb-7405609089943919.19.azuredatabricks.net"
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: dbxarchitectlab_dev
+    presets:
+      trigger_pause_status: PAUSED
+    run_as:
+      service_principal_name: "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse
+    permissions:
+      - group_name: DBX_Architect_Lab_Admin
+        level: CAN_MANAGE
 
   uat:
     mode: production

@@ -1,0 +1,59 @@
+name: Deploy
+
+# Promotion: what is merged to main deploys to uat, is smoke-tested there, and then deploys to prod once the prod
+# environment's reviewers approve. dev is never deployed from here: developers deploy their own copy to dev.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time; a newer push waits instead of racing an older one.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  # The bundle target sets the workspace host; the service principal signs in with its Databricks OAuth secret.
+  DATABRICKS_AUTH_TYPE: oauth-m2m
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pytest
+      - run: pytest -q tests
+
+  uat:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: uat
+    env:
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate -t uat
+      - run: databricks bundle deploy -t uat
+      # Smoke test: run the sample job once in uat and wait for it; a failure stops the promotion to prod.
+      - run: databricks bundle run -t uat sample_ingest
+
+  prod:
+    needs: uat
+    runs-on: ubuntu-latest
+    environment: prod  # add required reviewers to this environment: the approval gate before prod
+    env:
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate -t prod
+      - run: databricks bundle deploy -t prod

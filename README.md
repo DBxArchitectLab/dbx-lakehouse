@@ -27,8 +27,9 @@ any branch you pick. Nobody deploys a shared copy by hand.
 - **dev** uses development mode: every developer gets their own copy. Jobs are prefixed `[dev <user>]`, schedules
   are paused, and the schema is `dev_<user>_lakehouse`, so nobody overwrites anyone else's tables.
 - **dev-shared**, **uat** and **prod** use production mode: one shared copy per environment, under
-  `/Workspace/Shared/.bundle/`, owned and run by `sp-dbx-lakehouse`, with `DBX_Architect_Lab_Admin` able to manage
-  it. In dev-shared the schedules are paused: it runs when the pipeline (or you) starts it. Its schema is `lakehouse`,
+  `/Workspace/Users/<sp-dbx-lakehouse application ID>/.bundle/` (the service principal's own folder, which other
+  users can't write to), owned and run by `sp-dbx-lakehouse`, with `DBX_Architect_Lab_Admin` able to manage it.
+  In dev-shared the schedules are paused: it runs when the pipeline (or you) starts it. Its schema is `lakehouse`,
   next to the developers' `dev_<user>_lakehouse` schemas.
 
 ## Layout

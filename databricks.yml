@@ -29,7 +29,8 @@ targets:
     mode: production
     workspace:
       host: "https://adb-7405609089943919.19.azuredatabricks.net"
-      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+      # The service principal's own folder: only it (and workspace admins) can write there.
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
     variables:
       catalog: dbxarchitectlab_dev
     presets:
@@ -37,6 +38,8 @@ targets:
     run_as:
       service_principal_name: "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse
     permissions:
+      - service_principal_name: "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse, the deploying identity
+        level: CAN_MANAGE
       - group_name: DBX_Architect_Lab_Admin
         level: CAN_MANAGE
 
@@ -44,12 +47,15 @@ targets:
     mode: production
     workspace:
       host: "https://adb-7405605496889455.15.azuredatabricks.net"
-      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+      # The service principal's own folder: only it (and workspace admins) can write there.
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
     variables:
       catalog: dbxarchitectlab_uat
     run_as:
       service_principal_name: "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse
     permissions:
+      - service_principal_name: "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse, the deploying identity
+        level: CAN_MANAGE
       - group_name: DBX_Architect_Lab_Admin
         level: CAN_MANAGE
 
@@ -57,11 +63,14 @@ targets:
     mode: production
     workspace:
       host: "https://adb-7405604784566671.11.azuredatabricks.net"
-      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+      # The service principal's own folder: only it (and workspace admins) can write there.
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
     variables:
       catalog: dbxarchitectlab_prod
     run_as:
       service_principal_name: "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse
     permissions:
+      - service_principal_name: "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse, the deploying identity
+        level: CAN_MANAGE
       - group_name: DBX_Architect_Lab_Admin
         level: CAN_MANAGE

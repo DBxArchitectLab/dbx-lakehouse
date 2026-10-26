@@ -1,0 +1,24 @@
+resources:
+  jobs:
+    # A starter job that proves the path from dev to uat to prod: it writes a small table into the bundle's schema.
+    # Replace it with real pipelines; keep one job per file.
+    sample_ingest:
+      name: sample-ingest
+      max_concurrent_runs: 1
+      schedule:
+        # Development mode pauses schedules in dev; uat and prod run daily.
+        quartz_cron_expression: "0 0 5 * * ?"
+        timezone_id: UTC
+      email_notifications:
+        on_failure:
+          - "dbxarchitectlab@gmail.com"
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.lakehouse.name}
+      tasks:
+        # No cluster: the task runs on serverless compute.
+        - task_key: ingest
+          notebook_task:
+            notebook_path: ../src/notebooks/sample_ingest.py

@@ -1,0 +1,8 @@
+resources:
+  schemas:
+    # The bundle's schema in the environment's catalog. In dev, development mode prefixes the name per developer
+    # (dev_<user>_lakehouse), so developers never write to each other's tables.
+    lakehouse:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: Tables produced by the dbx-lakehouse-ai-bi bundle.

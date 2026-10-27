@@ -15,9 +15,10 @@ Every run writes the inventory tables (identity.inventory). Apply needs them: th
 the job which account groups it may reuse.
 
 Identity: sp-dbx-lakehouse. Workspace calls use the job's own identity (run_as). Account calls (create account
-groups, assign them to the workspace) sign in with its OAuth secret, from the secret scope in the config; the account
-ID and client ID are in the config. Outside Databricks, the workspace comes from the usual CLI/SDK settings and the
-secret from DATABRICKS_CLIENT_SECRET; there, plan mode works without the tables and only prints.
+groups, assign them to the workspace) sign in with its OAuth client ID and secret and the account ID, from the secret
+scope in the config. Outside Databricks, the workspace comes from the usual CLI/SDK settings and those three from
+DATABRICKS_CLIENT_ID, DATABRICKS_CLIENT_SECRET and DATABRICKS_ACCOUNT_ID; there, plan mode works without the tables
+and only prints.
 """
 import argparse
 import inspect
@@ -91,7 +92,9 @@ def main() -> int:
     adopt = set(cfg.get("adopt_account_groups") or [])
 
     creds = cfg["credentials"]
-    a = AccountClient(host=cfg["account_host"], account_id=cfg["account_id"], client_id=creds["client_id"],
+    a = AccountClient(host=cfg["account_host"],
+                      account_id=secret(creds["scope"], creds["account_id_key"], "DATABRICKS_ACCOUNT_ID"),
+                      client_id=secret(creds["scope"], creds["client_id_key"], "DATABRICKS_CLIENT_ID"),
                       client_secret=secret(creds["scope"], creds["client_secret_key"], "DATABRICKS_CLIENT_SECRET"))
 
     # The workspace this job runs in, as the job's own identity.

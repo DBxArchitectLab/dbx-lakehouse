@@ -1,0 +1,34 @@
+resources:
+  jobs:
+    # Run on demand in each environment: plan first, then apply, then (after checking) delete the local groups.
+    identity_group_migration:
+      name: identity-workspace-group-migration
+      max_concurrent_runs: 1
+      parameters:
+        - name: mode
+          default: plan
+        - name: delete_local_groups
+          default: "false"
+      tasks:
+        - task_key: migrate
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/jobs/migrate_workspace_groups.py
+            parameters:
+              - --config
+              - ${workspace.file_path}/config/group_migration.yaml
+              - --env
+              - ${var.env}
+              - --catalog
+              - ${var.catalog}
+              - --mode
+              - "{{job.parameters.mode}}"
+              - --delete-local-groups
+              - "{{job.parameters.delete_local_groups}}"
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies:
+              - databricks-sdk>=0.40.0
+              - pyyaml

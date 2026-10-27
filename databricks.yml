@@ -16,6 +16,8 @@ variables:
   schema:
     description: Schema for this bundle's tables
     default: lakehouse
+  env:
+    description: Environment of the target workspace (dev, uat or prod); used in migrated account group names
 
 # Developers deploy their own copy to dev by hand (target dev). Everything shared, the dev-shared copy, uat and prod,
 # is deployed by GitHub Actions as sp-dbx-lakehouse, never by hand.
@@ -28,6 +30,7 @@ targets:
       host: "https://adb-7405609089943919.19.azuredatabricks.net"
     variables:
       catalog: dbxarchitectlab_dev
+      env: dev
 
   # The shared dev copy, deployed by GitHub Actions (Run workflow -> dev) from any branch. One copy, owned and run by
   # sp-dbx-lakehouse; schedules are paused so it only runs when started (the pipeline starts it after each deploy).
@@ -39,6 +42,7 @@ targets:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
     variables:
       catalog: dbxarchitectlab_dev
+      env: dev
     presets:
       trigger_pause_status: PAUSED
     run_as:
@@ -57,6 +61,7 @@ targets:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
     variables:
       catalog: dbxarchitectlab_uat
+      env: uat
     run_as:
       service_principal_name: "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse
     permissions:
@@ -73,6 +78,7 @@ targets:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
     variables:
       catalog: dbxarchitectlab_prod
+      env: prod
     run_as:
       service_principal_name: "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse
     permissions:

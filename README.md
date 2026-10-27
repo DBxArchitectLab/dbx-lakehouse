@@ -1,9 +1,18 @@
 # dbx-lakehouse-ai-bi
 
-Part of **DBX Architect Lab**, an enterprise Databricks platform built in public:
-[YouTube](https://www.youtube.com/@DBxArchitectLab) ·
-[LinkedIn](https://www.linkedin.com/in/DBxArchitectLab) ·
-[GitHub](https://github.com/DBxArchitectLab)
+> **📺 DBX Architect Lab on YouTube:
+> [youtube.com/@DBxArchitectLab](https://www.youtube.com/@DBxArchitectLab)**
+>
+> One enterprise Databricks platform on Azure, AWS and Google Cloud, built in public: infrastructure, platform
+> management, governance, data engineering and AI/BI. This repository is part of it, and the videos walk through the
+> architecture and the deployment step by step.
+>
+> *With AI assistance, coding is no longer the hard part. A solid understanding of the architecture and the
+> fundamentals is the key to success.*
+>
+> [YouTube](https://www.youtube.com/@DBxArchitectLab) ·
+> [LinkedIn](https://www.linkedin.com/in/DBxArchitectLab) ·
+> [GitHub](https://github.com/DBxArchitectLab)
 
 Data engineering and AI work on the Azure Databricks platform, packaged as a Databricks Asset Bundle. Work is built
 in **dev** and deployed to **dev**, **uat** and **prod** by GitHub Actions: automatically from `main`, or on demand from

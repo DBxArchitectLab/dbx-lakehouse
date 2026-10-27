@@ -39,6 +39,8 @@ databricks.yml                  The bundle: variables and the dev, uat and prod 
 resources/                      What gets deployed: one resource per file (*.job.yml, *.schema.yml, ...)
 src/lakehouse/                  Python code the notebooks import; unit tested
 src/notebooks/                  Notebooks that the jobs run
+src/notebooks/shared/           Notebooks for people to run by hand; copied to /Workspace/Shared (see below)
+scripts/deploy-shared-notebooks.sh  Copies src/notebooks/shared to /Workspace/Shared; run by the pipeline
 tests/                          Unit tests (no Databricks connection needed)
 .github/workflows/ci.yml        Pull requests: tests, and the bundle validated against uat
 .github/workflows/cd.yml        Jobs dev, uat, prod. Merge to main: uat (deploy and smoke run) → approval → prod;
@@ -48,6 +50,21 @@ tests/                          Unit tests (no Databricks connection needed)
 The starter resources, a `lakehouse` schema and a `sample-ingest` job that writes two small tables, prove the path
 end to end. Replace them with real work, and keep each environment's differences in the targets and variables of
 `databricks.yml`, never in the code.
+
+### Shared notebooks
+
+Everything under `src/notebooks/shared/` is copied to **`/Workspace/Shared/`** in the target workspace, subfolders
+included, by each deployment of dev (the shared copy), uat and prod. It is excluded from the bundle's own folder, so
+there is one copy. Use it for notebooks people run by hand, not for job code.
+
+- Same name: overwritten. Removed from the folder: **not** deleted from the workspace; delete it there by hand.
+- `/Workspace/Shared` is writable by all workspace users: keep secrets and credentials out of these notebooks.
+- Developers' own dev deployments (`bundle deploy -t dev`) don't copy it. To try a change in dev, run
+  `bash scripts/deploy-shared-notebooks.sh dev` (it copies to dev's `/Workspace/Shared`, as you; needs `jq`).
+
+| Notebook | What it does | Run as |
+| --- | --- | --- |
+| `create_workspace_level_group` | Creates the workspace-local group `test_local_group_<env>` (dev, uat or prod) with the workspace Groups API, for testing `dbx-governance`'s group migration. `env` = `auto` detects the workspace; re-running is safe | A workspace admin |
 
 ## One-time setup
 

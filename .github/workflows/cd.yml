@@ -42,6 +42,8 @@ jobs:
       - uses: databricks/setup-cli@main
       - run: databricks bundle validate -t dev-shared
       - run: databricks bundle deploy -t dev-shared
+      - name: Copy src/notebooks/shared to /Workspace/Shared
+        run: bash scripts/deploy-shared-notebooks.sh dev-shared
       # Smoke test: run the sample job once and wait for it.
       - run: databricks bundle run -t dev-shared sample_ingest
 
@@ -61,6 +63,8 @@ jobs:
       - uses: databricks/setup-cli@main
       - run: databricks bundle validate -t uat
       - run: databricks bundle deploy -t uat
+      - name: Copy src/notebooks/shared to /Workspace/Shared
+        run: bash scripts/deploy-shared-notebooks.sh uat
       # Smoke test: run the sample job once in uat and wait for it; a failure stops the promotion to prod.
       - run: databricks bundle run -t uat sample_ingest
 
@@ -90,3 +94,5 @@ jobs:
       - uses: databricks/setup-cli@main
       - run: databricks bundle validate -t prod
       - run: databricks bundle deploy -t prod
+      - name: Copy src/notebooks/shared to /Workspace/Shared
+        run: bash scripts/deploy-shared-notebooks.sh prod

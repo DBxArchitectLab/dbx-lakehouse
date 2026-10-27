@@ -37,22 +37,19 @@ any branch you pick. Nobody deploys a shared copy by hand.
 ```
 databricks.yml                  The bundle: variables and the dev, uat and prod targets
 resources/                      What gets deployed: one resource per file (*.job.yml, *.schema.yml, ...)
-src/lakehouse/                  Python code the notebooks import; unit tested
 src/identity/, src/jobs/        Workspace-local group migration (see Identity below); unit tested
 config/group_migration.yaml     Its configuration
-src/notebooks/                  Notebooks that the jobs run
 src/notebooks/shared/           Notebooks for people to run by hand; copied to /Workspace/Shared (see below)
 scripts/deploy-shared-notebooks.sh  Copies src/notebooks/shared to /Workspace/Shared; run by the pipeline
 scripts/put-migration-secrets.sh   Stores the group migration's account credentials in dev, uat and prod (once)
 tests/                          Unit tests (no Databricks connection needed)
 .github/workflows/ci.yml        Pull requests: tests, and the bundle validated against uat
-.github/workflows/cd.yml        Jobs dev, uat, prod. Merge to main: uat (deploy and smoke run) → approval → prod;
+.github/workflows/cd.yml        Jobs dev, uat, prod. Merge to main: uat → approval → prod;
                                 Run workflow: only the job of the environment you choose, from the branch you choose
 ```
 
-The starter resources, a `lakehouse` schema and a `sample-ingest` job that writes two small tables, prove the path
-end to end. Replace them with real work, and keep each environment's differences in the targets and variables of
-`databricks.yml`, never in the code.
+The `lakehouse` schema is the bundle's place for its tables. Add real work as resources next to it, and keep each
+environment's differences in the targets and variables of `databricks.yml`, never in the code.
 
 ### Shared notebooks
 
@@ -67,7 +64,7 @@ there is one copy. Use it for notebooks people run by hand, not for job code.
 
 | Notebook | What it does | Run as |
 | --- | --- | --- |
-| `create_workspace_level_group` | Creates the workspace-local group `test_local_group_<env>` (dev, uat or prod) with the workspace Groups API, for testing `dbx-governance`'s group migration. `env` = `auto` detects the workspace; re-running is safe | A workspace admin |
+| `create_workspace_level_group` | Creates the workspace-local groups `test_local_group_<env>` and `test_local_nested_group_<env>` (dev, uat or prod) with the workspace Groups API, nests the second in the first and adds you to the second, for testing the group migration (see [Identity](#identity-workspace-local-groups-to-account-groups)). `env` = `auto` detects the workspace; re-running is safe | A workspace admin |
 
 ## One-time setup
 
@@ -196,15 +193,14 @@ Each should end with `Validation OK!` and show the workspace host of that target
 
 1. Commit the change from step 6 on a branch, open a pull request, and check that **CI** passes (tests and the uat
    validation).
-2. Merge it. The **Deploy** workflow starts: uat (validate, deploy, and a run of `sample-ingest`), then it waits for a
-   prod reviewer.
-3. Check uat before approving: **Workflows** shows `sample-ingest`, owned by `sp-dbx-lakehouse`, with a successful
-   run; **Catalog → `dbxarchitectlab_uat` → `lakehouse`** has `sample_orders` and `sample_revenue_by_region`.
-4. Approve the prod deployment in the workflow run. Check prod the same way (the job is deployed; its first run is the
-   next scheduled one, or start it with **Run now**).
-5. Try an on-demand deployment: **Actions → Deploy → Run workflow**, branch `main`, environment `dev`. dev now has a
-   `sample-ingest` job owned by `sp-dbx-lakehouse` (not prefixed `[dev ...]`), with a successful run, and
-   `dbxarchitectlab_dev.lakehouse` has the two tables.
+2. Merge it. The **Deploy** workflow starts: uat (validate and deploy), then it waits for a prod reviewer.
+3. Check uat before approving: **Workflows** shows the bundle's jobs (`identity-workspace-group-migration`,
+   `identity-local-group-drift-check`), owned by `sp-dbx-lakehouse`; **Catalog → `dbxarchitectlab_uat`** has the
+   `lakehouse` schema.
+4. Approve the prod deployment in the workflow run. Check prod the same way.
+5. Try an on-demand deployment: **Actions → Deploy → Run workflow**, branch `main`, environment `dev`. dev now has the
+   same jobs owned by `sp-dbx-lakehouse` (not prefixed `[dev ...]`), and `dbxarchitectlab_dev` has the `lakehouse`
+   schema.
 
 The setup is done. From now on, every merge to `main` goes through the same path, and any branch can be deployed on
 demand (see [Deploy on demand](#deploy-on-demand)).
@@ -246,8 +242,8 @@ Everything happens in dev, as yourself:
 
 ```bash
 databricks bundle validate -t dev
-databricks bundle deploy -t dev          # your own copy: [dev <you>] sample-ingest, schema dev_<you>_lakehouse
-databricks bundle run -t dev sample_ingest
+databricks bundle deploy -t dev          # your own copy: [dev <you>] jobs, schema dev_<you>_lakehouse
+databricks bundle run -t dev <job key>   # e.g. identity_group_migration
 databricks bundle destroy -t dev         # when you are done with the copy
 
 pytest -q tests                          # unit tests, no workspace needed
@@ -266,10 +262,10 @@ feature branch ──PR──▶ CI: tests + validate (uat)
       │
     merge
       ▼
-main ──▶ uat: validate, deploy, smoke run ──▶ approval ──▶ prod: validate, deploy
+main ──▶ uat: validate, deploy ──▶ approval ──▶ prod: validate, deploy
 ```
 
-- A failed smoke run in uat stops the promotion: prod is not touched.
+- A failed uat deployment stops the promotion: prod is not touched.
 - prod waits for a reviewer of the `prod` GitHub environment.
 - Only one deployment runs at a time; a newer merge waits for the running one.
 - To roll back, revert the commit on `main`; the revert is promoted the same way.
@@ -283,8 +279,8 @@ main ──▶ uat: validate, deploy, smoke run ──▶ approval ──▶ pro
 
 | Environment | Branches | Job that runs |
 | --- | --- | --- |
-| `dev` | Any | `dev`: the `dev-shared` target, validate, deploy, run `sample-ingest` |
-| `uat` | Any | `uat`: validate, deploy, run `sample-ingest` |
+| `dev` | Any | `dev`: the `dev-shared` target, validate, deploy |
+| `uat` | Any | `uat`: validate, deploy |
 | `prod` | `main` only | `prod`: a prod reviewer approves, then validate, deploy |
 
 The Deploy workflow doesn't run the unit tests: CI runs them on every pull request, before anything is merged. A
@@ -405,7 +401,9 @@ In each workspace, run `identity-workspace-group-migration` (**Run now with diff
 
 Plan mode changes nothing in the workspace or the account. The output lists every local group, its account group,
 its nested local groups and each action (`WOULD ...`), plus any problem to fix first; the same goes into the
-inventory tables. Test groups: `src/notebooks/shared/create_workspace_level_group` creates `test_local_group_<env>`.
+inventory tables. Test groups: `src/notebooks/shared/create_workspace_level_group` creates `test_local_group_<env>`
+with the nested group `test_local_nested_group_<env>` in it; plan lists the nested group under the parent's nested
+local groups and migrates it first.
 
 ### What it doesn't cover
 

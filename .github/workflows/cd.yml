@@ -1,4 +1,9 @@
 name: Deploy
+# The run's title in the Actions list: which branch went to which environment, and who started it.
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+      && format('Deploy {0} → {1} (@{2})', github.ref_name, inputs.environment, github.actor)
+      || format('Promote {0} → uat → prod (@{1})', github.ref_name, github.actor) }}
 
 # Two ways to deploy, both as sp-dbx-lakehouse (unit tests run in CI, on the pull request):
 # - Merge to main (promotion): uat (deploy and smoke run) -> approval -> prod.

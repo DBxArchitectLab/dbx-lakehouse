@@ -114,6 +114,31 @@ inventory tables. Test groups: `src/notebooks/shared/create_workspace_level_grou
 with the nested group `test_local_nested_group_<env>` in it; plan lists the nested group under the parent's nested
 local groups and migrates it first.
 
+## Test evidence
+
+### Nested group migration in uat (apply), 2026-10-27
+
+`identity-workspace-group-migration` in uat, `mode` = `apply`, `delete_local_groups` = `false`, run as
+`sp-dbx-lakehouse` (job run 942748576891353): **Succeeded**, 2 workspace-local groups migrated, 0 blocked. The test
+groups came from `create_workspace_level_group`.
+
+![identity-workspace-group-migration apply run in uat: both test groups MIGRATED](docs/images/group-migration-uat-apply-nested.png)
+
+| Workspace-local group | Account group | Steps | Result |
+| --- | --- | --- | --- |
+| `test_local_nested_group_uat` (no members, no nested groups) | `test_local_nested_group_uat_uat` | `create_group`, `assign` to the uat workspace (USER), `migrate_permissions` (0) | MIGRATED, first |
+| `test_local_group_uat` (1 member: the nested group) | `test_local_group_uat_uat` | `create_group`, `add_members` (1: the nested group's account group), `assign` (USER), `migrate_permissions` (0) | MIGRATED, after the nested group |
+
+What it shows:
+
+- **Nested-group order:** the nested group was migrated first, so its account group existed when the parent's
+  account group needed it as a member.
+- **Nesting kept:** `test_local_group_uat_uat` has `test_local_nested_group_uat_uat` as its member, as the local
+  groups had.
+- **Naming:** `{group}_{env}` gives `<local name>_uat`. The test groups already end in `_uat`, so the names repeat it.
+- **Per-environment run:** the job ran inside uat, as `sp-dbx-lakehouse`, and recorded the run in
+  `dbxarchitectlab_uat.identity`.
+
 ## What it doesn't cover
 
 - **Unity Catalog grants:** none to migrate, since Unity Catalog never accepted workspace-local groups. Grant the new

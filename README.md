@@ -388,8 +388,8 @@ operations, and moving permissions and changing groups are workspace-admin opera
    setup step 3) and creates the `identity` schema on the first run.
 5. Deploy (merge to `main`, or **Run workflow** for dev): the two jobs appear in each workspace.
 
-Pause the drift check in uat and prod until the migration there is finished (it fails every day until then):
-**Jobs & Pipelines → identity-local-group-drift-check → Schedule → Pause**.
+The drift check's schedule is paused (`pause_status: PAUSED` in `resources/identity_local_group_drift.job.yml`): it
+fails every day while local groups exist. Set it to `UNPAUSED` once the migration is finished.
 
 ### Run it
 
@@ -416,7 +416,7 @@ inventory tables. Test groups: `src/notebooks/shared/create_workspace_level_grou
 
 ### Keeping it that way
 
-`identity-local-group-drift-check` runs daily in uat and prod (paused in dev) in plan mode and fails, with an email,
+`identity-local-group-drift-check`, once unpaused, runs daily in uat and prod (paused in dev) in plan mode and fails, with an email,
 when any workspace-local group exists. Longer term, make Microsoft Entra ID the source of account groups (SCIM
 provisioning or automatic identity management), so groups are managed once, in Entra ID, and only assigned to
 workspaces.

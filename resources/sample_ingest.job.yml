@@ -6,9 +6,11 @@ resources:
       name: sample-ingest
       max_concurrent_runs: 1
       schedule:
-        # Development mode pauses schedules in dev; uat and prod run daily.
+        # Paused everywhere for now; set pause_status to UNPAUSED to run daily in uat and prod (development mode and
+        # dev-shared keep it paused in dev).
         quartz_cron_expression: "0 0 5 * * ?"
         timezone_id: UTC
+        pause_status: PAUSED
       email_notifications:
         on_failure:
           - "dbxarchitectlab@gmail.com"

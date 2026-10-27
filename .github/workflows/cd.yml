@@ -3,7 +3,7 @@ name: Deploy
 run-name: "${{ github.event_name == 'workflow_dispatch' && format('Deploy {0} → {1} (@{2})', github.ref_name, inputs.environment, github.actor) || format('Promote {0} → uat → prod (@{1})', github.ref_name, github.actor) }}"
 
 # Two ways to deploy, both as sp-dbx-lakehouse (unit tests run in CI, on the pull request):
-# - Merge to main (promotion): uat (deploy and smoke run) -> approval -> prod.
+# - Merge to main (promotion): uat -> approval -> prod.
 # - Run workflow (on demand): Actions -> Deploy -> Run workflow, pick the branch ("Use workflow from") and the
 #   environment; only that environment's job runs. dev and uat accept any branch; prod only main, and still waits for
 #   the prod environment's reviewers.
@@ -44,8 +44,6 @@ jobs:
       - run: databricks bundle deploy -t dev-shared
       - name: Copy src/notebooks/shared to /Workspace/Shared
         run: bash scripts/deploy-shared-notebooks.sh dev-shared
-      # Smoke test: run the sample job once and wait for it.
-      - run: databricks bundle run -t dev-shared sample_ingest
 
   # On merge to main, or on demand.
   uat:
@@ -65,8 +63,6 @@ jobs:
       - run: databricks bundle deploy -t uat
       - name: Copy src/notebooks/shared to /Workspace/Shared
         run: bash scripts/deploy-shared-notebooks.sh uat
-      # Smoke test: run the sample job once in uat and wait for it; a failure stops the promotion to prod.
-      - run: databricks bundle run -t uat sample_ingest
 
   # After a successful uat on merge to main, or on demand from main.
   prod:

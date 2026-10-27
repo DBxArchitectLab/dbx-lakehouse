@@ -41,8 +41,8 @@ src/lakehouse/                  Python code the notebooks import; unit tested
 src/notebooks/                  Notebooks that the jobs run
 tests/                          Unit tests (no Databricks connection needed)
 .github/workflows/ci.yml        Pull requests: tests, and the bundle validated against uat
-.github/workflows/cd.yml        Merge to main: tests → uat (deploy and smoke run) → approval → prod;
-                                Run workflow: the branch and environment (dev, uat, prod) you choose
+.github/workflows/cd.yml        Jobs dev, uat, prod. Merge to main: uat (deploy and smoke run) → approval → prod;
+                                Run workflow: only the job of the environment you choose, from the branch you choose
 ```
 
 The starter resources, a `lakehouse` schema and a `sample-ingest` job that writes two small tables, prove the path
@@ -176,8 +176,8 @@ Each should end with `Validation OK!` and show the workspace host of that target
 
 1. Commit the change from step 6 on a branch, open a pull request, and check that **CI** passes (tests and the uat
    validation).
-2. Merge it. The **Deploy** workflow starts: tests, then uat (validate, deploy, and a run of `sample-ingest`), then it
-   waits for a prod reviewer.
+2. Merge it. The **Deploy** workflow starts: uat (validate, deploy, and a run of `sample-ingest`), then it waits for a
+   prod reviewer.
 3. Check uat before approving: **Workflows** shows `sample-ingest`, owned by `sp-dbx-lakehouse`, with a successful
    run; **Catalog → `dbxarchitectlab_uat` → `lakehouse`** has `sample_orders` and `sample_revenue_by_region`.
 4. Approve the prod deployment in the workflow run. Check prod the same way (the job is deployed; its first run is the
@@ -246,7 +246,7 @@ feature branch ──PR──▶ CI: tests + validate (uat)
       │
     merge
       ▼
-main ──▶ tests ──▶ uat: validate, deploy, smoke run ──▶ approval ──▶ prod: validate, deploy
+main ──▶ uat: validate, deploy, smoke run ──▶ approval ──▶ prod: validate, deploy
 ```
 
 - A failed smoke run in uat stops the promotion: prod is not touched.
@@ -261,11 +261,14 @@ main ──▶ tests ──▶ uat: validate, deploy, smoke run ──▶ approv
 1. **Use workflow from:** the branch to deploy.
 2. **Environment:** `dev`, `uat` or `prod`.
 
-| Environment | Branches | What runs |
+| Environment | Branches | Job that runs |
 | --- | --- | --- |
-| `dev` | Any | Tests, then the `dev-shared` target: validate, deploy, run `sample-ingest` |
-| `uat` | Any | Tests, then `uat`: validate, deploy, run `sample-ingest` |
-| `prod` | `main` only | Tests, then a prod reviewer approves, then `prod`: validate, deploy |
+| `dev` | Any | `dev`: the `dev-shared` target, validate, deploy, run `sample-ingest` |
+| `uat` | Any | `uat`: validate, deploy, run `sample-ingest` |
+| `prod` | `main` only | `prod`: a prod reviewer approves, then validate, deploy |
+
+The Deploy workflow doesn't run the unit tests: CI runs them on every pull request, before anything is merged. A
+branch deployed on demand without a pull request hasn't been tested, so run `pytest -q tests` first.
 
 - dev and uat each hold **one** shared copy: deploying a branch replaces what was there, including what `main`
   deployed to uat. The next merge to `main` puts `main` back in uat; to restore it sooner, run the workflow from

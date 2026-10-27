@@ -20,12 +20,12 @@ exclude_groups: []
 # Anything not listed here and not in the registry table stops that group's migration instead of being taken over.
 adopt_account_groups: []
 
-# sp-dbx-lakehouse's OAuth credentials and the account ID, for the account API calls (creating account groups and
-# assigning them to the workspace). In each of dev, uat and prod, in the scope the workspace bootstrap creates
-# (dbx-platform-infra-azure, live/<env>/workspace-bootstrap/secret-scope-config.yaml). Workspace calls use the job's
-# own identity and need no secret.
+# The account API calls (creating account groups and assigning them to the workspace) sign in as sp-dbx-lakehouse
+# with its OAuth secret; workspace calls use the job's own identity and need no secret. The account ID and the client
+# ID are identifiers, not secrets. Only the client secret is in a secret scope: in each of dev, uat and prod, the scope
+# the workspace bootstrap creates (dbx-platform-infra-azure, live/<env>/workspace-bootstrap/secret-scope-config.yaml).
+account_id: "6d4ff0d5-12e5-4239-bb31-140bd8209fff"
 credentials:
+  client_id: "9a769c8e-a44b-4009-9378-719753df14c7"   # sp-dbx-lakehouse (application ID)
   scope: "sct_dbx_architect_lab"
-  client_id_key: "sp-dbx-lakehouse-client-id"
   client_secret_key: "sp-dbx-lakehouse-client-secret"
-  account_id_key: "databricks-account-id"

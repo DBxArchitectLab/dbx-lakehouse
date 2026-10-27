@@ -368,16 +368,19 @@ operations, and moving permissions and changing groups are workspace-admin opera
 2. **Workspace admin in dev, uat and prod:** in `dbx-platform-infra-azure`, add its application ID to
    `live/<env>/workspace-bootstrap/workspace-admin-config.yaml` for dev, uat and prod, then plan and apply each
    `<env>-dbxarchitectlab-workspace-bootstrap`.
-3. **Its account credentials, in each of dev, uat and prod:** the account API can't use the job's own identity, so
-   the job reads `sp-dbx-lakehouse`'s OAuth secret from the workspace's secret scope. As a workspace admin of each:
+3. **Its OAuth secret, in each of dev, uat and prod:** the account API can't use the job's own identity, so the job
+   signs in to the account with `sp-dbx-lakehouse`'s OAuth secret, read from the workspace's secret scope (the
+   account ID and client ID are in `config/group_migration.yaml`). As a workspace admin, once per workspace:
 
    ```bash
-   databricks auth login --host <dev, uat or prod workspace URL>
-
-   databricks secrets put-secret sct_dbx_architect_lab sp-dbx-lakehouse-client-id     --string-value "9a769c8e-a44b-4009-9378-719753df14c7"
-   databricks secrets put-secret sct_dbx_architect_lab sp-dbx-lakehouse-client-secret --string-value "<OAuth secret>"
-   databricks secrets put-secret sct_dbx_architect_lab databricks-account-id          --string-value "<account ID>"
-   databricks secrets put-acl    sct_dbx_architect_lab 9a769c8e-a44b-4009-9378-719753df14c7 READ
+   for host in https://adb-7405609089943919.19.azuredatabricks.net                https://adb-7405605496889455.15.azuredatabricks.net                https://adb-7405604784566671.11.azuredatabricks.net; do
+     export DATABRICKS_HOST="$host"
+     databricks auth login --host "$host"
+     databricks secrets put-secret sct_dbx_architect_lab sp-dbx-lakehouse-client-secret   # paste the secret when asked
+     databricks secrets put-acl sct_dbx_architect_lab 9a769c8e-a44b-4009-9378-719753df14c7 READ
+     databricks secrets list-secrets sct_dbx_architect_lab   # expect sp-dbx-lakehouse-client-secret
+   done
+   unset DATABRICKS_HOST
    ```
 
    Use the same Databricks OAuth secret as the GitHub environments (one-time setup step 1), and rotate it in both

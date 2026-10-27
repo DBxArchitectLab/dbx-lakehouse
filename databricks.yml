@@ -4,6 +4,12 @@ bundle:
 include:
   - resources/*.yml
 
+# src/notebooks/shared goes to /Workspace/Shared instead (scripts/deploy-shared-notebooks.sh, run by the pipeline),
+# so it isn't also copied into the bundle's folder.
+sync:
+  exclude:
+    - src/notebooks/shared/**
+
 variables:
   catalog:
     description: Unity Catalog catalog of the environment (created by dbx-platform-infra-azure's bootstrap)

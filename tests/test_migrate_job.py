@@ -25,7 +25,7 @@ def test_plan_migrates_the_workspace_it_runs_in(monkeypatch, capsys):
     monkeypatch.setattr(job, "WorkspaceClient", lambda: w)
     monkeypatch.setattr(job, "AccountClient", lambda **_: a)
     monkeypatch.setattr(job, "spark_session", lambda: None)
-    for name in ("DATABRICKS_ACCOUNT_ID", "DATABRICKS_CLIENT_ID", "DATABRICKS_CLIENT_SECRET"):
+    for name in ("DATABRICKS_CLIENT_SECRET",):
         monkeypatch.setenv(name, "x")
     monkeypatch.setattr("sys.argv", ["job", "--config", str(ROOT / "config" / "group_migration.yaml"),
                                      "--env", "dev", "--catalog", "dbxarchitectlab_dev"])

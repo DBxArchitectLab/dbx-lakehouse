@@ -43,6 +43,7 @@ config/group_migration.yaml     Its configuration
 src/notebooks/                  Notebooks that the jobs run
 src/notebooks/shared/           Notebooks for people to run by hand; copied to /Workspace/Shared (see below)
 scripts/deploy-shared-notebooks.sh  Copies src/notebooks/shared to /Workspace/Shared; run by the pipeline
+scripts/put-migration-secrets.sh   Stores the group migration's account credentials in dev, uat and prod (once)
 tests/                          Unit tests (no Databricks connection needed)
 .github/workflows/ci.yml        Pull requests: tests, and the bundle validated against uat
 .github/workflows/cd.yml        Jobs dev, uat, prod. Merge to main: uat (deploy and smoke run) → approval → prod;
@@ -368,20 +369,18 @@ operations, and moving permissions and changing groups are workspace-admin opera
 2. **Workspace admin in dev, uat and prod:** in `dbx-platform-infra-azure`, add its application ID to
    `live/<env>/workspace-bootstrap/workspace-admin-config.yaml` for dev, uat and prod, then plan and apply each
    `<env>-dbxarchitectlab-workspace-bootstrap`.
-3. **Its OAuth secret, in each of dev, uat and prod:** the account API can't use the job's own identity, so the job
-   signs in to the account with `sp-dbx-lakehouse`'s OAuth secret, read from the workspace's secret scope (the
-   account ID and client ID are in `config/group_migration.yaml`). As a workspace admin, once per workspace:
+3. **Its account credentials, in each of dev, uat and prod:** the account API can't use the job's own identity, so
+   the job signs in to the account with `sp-dbx-lakehouse`'s client ID and OAuth secret and the account ID, all three
+   read from the workspace's `sct_dbx_architect_lab` scope (`sp-dbx-lakehouse-client-id`,
+   `sp-dbx-lakehouse-client-secret`, `databricks-account-id`). As a workspace admin of dev, uat and prod, in Git Bash:
 
    ```bash
-   for host in https://adb-7405609089943919.19.azuredatabricks.net                https://adb-7405605496889455.15.azuredatabricks.net                https://adb-7405604784566671.11.azuredatabricks.net; do
-     export DATABRICKS_HOST="$host"
-     databricks auth login --host "$host"
-     databricks secrets put-secret sct_dbx_architect_lab sp-dbx-lakehouse-client-secret   # paste the secret when asked
-     databricks secrets put-acl sct_dbx_architect_lab 9a769c8e-a44b-4009-9378-719753df14c7 READ
-     databricks secrets list-secrets sct_dbx_architect_lab   # expect sp-dbx-lakehouse-client-secret
-   done
-   unset DATABRICKS_HOST
+   bash scripts/put-migration-secrets.sh
    ```
+
+   It asks for the account ID and the OAuth secret once (hidden), signs in to each workspace in the browser, stores
+   the three secrets, gives `sp-dbx-lakehouse` READ on the scope and lists the keys. Paste each value on its own;
+   pasting several lines at once into the prompt goes wrong.
 
    Use the same Databricks OAuth secret as the GitHub environments (one-time setup step 1), and rotate it in both
    places (see [Maintenance](#maintenance)).
@@ -426,7 +425,8 @@ workspaces.
 
 - **Rotate the OAuth secret** before it expires: account console → `sp-dbx-lakehouse` → **Credentials & secrets →
   Generate secret**, update `DATABRICKS_CLIENT_SECRET` in the `dev`, `uat` and `prod` GitHub environments and
-  `sp-dbx-lakehouse-client-secret` in each workspace's `sct_dbx_architect_lab` scope, then delete the old secret.
+  `sp-dbx-lakehouse-client-secret` in each workspace's `sct_dbx_architect_lab` scope (`bash
+  scripts/put-migration-secrets.sh`), then delete the old secret.
 - **Add a reviewer for prod:** **Settings → Environments → prod → Required reviewers**.
 - **Remove a developer's dev copy:** they run `databricks bundle destroy -t dev`, or a workspace admin deletes their
   `[dev <user>]` jobs and `dev_<user>_lakehouse` schema.

@@ -31,8 +31,8 @@ ask() {  # ask <prompt> <minimum length>: reads a hidden value
 }
 
 # On Windows, winget installs the CLI without always putting it on Git Bash's PATH.
-if ! command -v databricks >/dev/null; then
-  for dir in "$LOCALAPPDATA"/Microsoft/WinGet/Packages/Databricks.DatabricksCLI_*; do
+if ! command -v databricks >/dev/null && [ -n "${LOCALAPPDATA:-}" ] && command -v cygpath >/dev/null; then
+  for dir in "$(cygpath -u "$LOCALAPPDATA")"/Microsoft/WinGet/Packages/Databricks.DatabricksCLI_*; do
     [ -x "$dir/databricks.exe" ] && PATH="$PATH:$dir"
   done
 fi

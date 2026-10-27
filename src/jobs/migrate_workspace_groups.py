@@ -148,4 +148,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # Exit only on failure: on serverless the file runs inside IPython, where even sys.exit(0) raises SystemExit and
+    # fails the task.
+    code = main()
+    if code:
+        sys.exit(code)
